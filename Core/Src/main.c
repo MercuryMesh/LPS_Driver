@@ -43,6 +43,9 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 
+uint8_t sendbuff [128];
+uint8_t receivebuff [128];
+
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -51,6 +54,8 @@ SPI_HandleTypeDef hspi1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
+void SPISend(uint8_t bytes);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -89,25 +94,21 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
-	uart_init(115200);
+  uart_init(115200);
   /* USER CODE BEGIN 2 */
 
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	uint8_t len = SetupSendBuff(0,0,0);
+	SPISend(len+4);
 	
-	uint8_t req[5] = {0};
-	uint8_t response[5];
-	HAL_SPI_TransmitReceive(&hspi1, req, response, 5, HAL_MAX_DELAY);
-
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
   /* USER CODE END 2 */
 	
-	uint32_t val = (response[1]) | (response[2] << 8) | (response[3] << 16) | (response[4] << 24);
+	uint32_t val = (receivebuff[len]) | (receivebuff[len+1] << 8) | (receivebuff[len+2] << 16) | (receivebuff[len+3] << 24);
 	
 	if (val == 0xDECA0130) {
 		// SUCCESS. Light green LED
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
-		transmit_string("looks good! Love that for you\n\r");
+        	transmit_string("looks good! Love that for you\n\r");
 	} else {
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
@@ -121,6 +122,35 @@ int main(void)
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
+}
+
+uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg)
+{
+	sendbuff[0] = reg;
+	if (send)
+	{
+		sendbuff[0] |= (1<<7);
+	}
+	if (subreg)
+	{
+		sendbuff[0] |= (1<<6);
+		sendbuff[1] = subreg & (0x007F);
+		if (subreg > 127)
+		{
+			sendbuff[1] |= (1<<7);
+			sendbuff[2] = (subreg >> 7);
+			return 3;
+		}
+		return 2;
+	}
+	return 1;
+}
+
+void SPISend(uint8_t bytes)
+{
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive(&hspi1, sendbuff, receivebuff, bytes, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 }
 
 /**
