@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "uart.h"
+#include "timer.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -90,6 +91,7 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
 	uart_init(115200);
+	tim3_init(500, 1);
   /* USER CODE BEGIN 2 */
 
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
@@ -196,6 +198,13 @@ static void MX_SPI1_Init(void)
   /* USER CODE END SPI1_Init 2 */
 
 }
+
+void TIM3_IRQHandler() {
+	// do thing
+	transmit_string("timer time\n\r");
+	TIM3->SR &= ~(0x01);
+}
+
 
 /**
   * @brief GPIO Initialization Function
