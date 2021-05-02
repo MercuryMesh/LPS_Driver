@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "uart.h"
+#include "timer.h"
 
 
 /* Private variables ---------------------------------------------------------*/
@@ -56,12 +57,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
-  uart_init(115200);
+	uart_init(115200);
+	tim3_init(500, 1);
 
 	
 	uint8_t len = SetupSendBuff(0,0,0);
 	SPISend(len+4);
-	
 	
 	uint32_t val = (receivebuff[len]) | (receivebuff[len+1] << 8) | (receivebuff[len+2] << 16) | (receivebuff[len+3] << 24);
 	
@@ -251,6 +252,13 @@ static void MX_SPI1_Init(void)
   /* USER CODE END SPI1_Init 2 */
 
 }
+
+void TIM3_IRQHandler() {
+	// do thing
+	transmit_string("timer time\n\r");
+	TIM3->SR &= ~(0x01);
+}
+
 
 /**
   * @brief GPIO Initialization Function
