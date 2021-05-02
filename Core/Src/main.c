@@ -128,6 +128,8 @@ int main(void)
 	Send32At(len, 0x8000);
 	SPISend(len+2);
 	
+	HAL_Delay(1);
+	
 	// PMSC_CTRL0: 0x36:00 -> 0x0200
 	len = SetupSendBuff(1,0x36,0);
 	Send32At(len, 0x0200);
