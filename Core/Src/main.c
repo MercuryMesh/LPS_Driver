@@ -21,24 +21,6 @@
 #include "main.h"
 #include "uart.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
@@ -46,9 +28,6 @@ SPI_HandleTypeDef hspi1;
 uint8_t sendbuff [128];
 uint8_t receivebuff [128];
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -56,14 +35,8 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
 void SPISend(uint8_t bytes);
-/* USER CODE BEGIN PFP */
+void Send32At(uint8_t position, uint32_t bytes);
 
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -71,36 +44,24 @@ void SPISend(uint8_t bytes);
   */
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
   uart_init(115200);
-  /* USER CODE BEGIN 2 */
 
+	
 	uint8_t len = SetupSendBuff(0,0,0);
 	SPISend(len+4);
 	
-  /* USER CODE END 2 */
 	
 	uint32_t val = (receivebuff[len]) | (receivebuff[len+1] << 8) | (receivebuff[len+2] << 16) | (receivebuff[len+3] << 24);
 	
@@ -113,15 +74,67 @@ int main(void)
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
 	}
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+	
+	//DWM "Default Configurations that should be modified"
+	// AGC_TUNE1: 0x23:04 -> 0x8870;
+	len = SetupSendBuff(1,0x23,0x04);
+	Send32At(len, 0x8870);
+	SPISend(len+2);
+	
+	// AGC_TUNE2: 0x23:0C -> 0x2502A907
+	len = SetupSendBuff(1,0x23,0x0C);
+	Send32At(len, 0x2502A907);
+	SPISend(len+4);
+	
+	// DRX_TUNE2: 0x27:08 -> 0x311A002D
+	len = SetupSendBuff(1,0x27,0x08);
+	Send32At(len, 0x311A002D);
+	SPISend(len+4);
+	
+	// LDE_CFG2: 0x2E:1806 -> 0x1607;
+	len = SetupSendBuff(1,0x2E,0x1806);
+	Send32At(len, 0x1607);
+	SPISend(len+2);
+	
+	// TX_POWER: 0x1E -> 0x0E082848
+	len = SetupSendBuff(1,0x1E,0);
+	Send32At(len, 0x0E082848);
+	SPISend(len+4);
+	
+	// RF_TXCTRL: 0x28:0C -> 0x1E3FE3
+	len = SetupSendBuff(1,0x28,0x0C);
+	Send32At(len, 0x1E3FE3);
+	SPISend(len+3);
+	
+	// TC_PGDELAY: 0x2A:0B -> 0xB5
+	len = SetupSendBuff(1,0x2A,0x0B);
+	Send32At(len, 0xB5);
+	SPISend(len+1);
+	
+	// FS_PLLTUNE: 0x2B:0B -> 0xBE
+	len = SetupSendBuff(1,0x2B,0x0B);
+	Send32At(len, 0xBE);
+	SPISend(len+1);
+	
+	// LDELOAD
+	// PMSC_CTRL0: 0x36:00 -> 0x0301
+	len = SetupSendBuff(1,0x36,0);
+	Send32At(len, 0x0301);
+	SPISend(len+2);
+	
+	// OTP_CTRL: 0x2D:06 -> 0x8000
+	len = SetupSendBuff(1,0x2D,0x06);
+	Send32At(len, 0x8000);
+	SPISend(len+2);
+	
+	// PMSC_CTRL0: 0x36:00 -> 0x0200
+	len = SetupSendBuff(1,0x36,0);
+	Send32At(len, 0x0200);
+	SPISend(len+2);
+
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
   }
-  /* USER CODE END 3 */
 }
 
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg)
@@ -151,6 +164,18 @@ void SPISend(uint8_t bytes)
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 	HAL_SPI_TransmitReceive(&hspi1, sendbuff, receivebuff, bytes, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+}
+
+void Send32At(uint8_t position, uint32_t bytes)
+{
+	sendbuff[position] = bytes;
+	bytes >>= 8;
+	sendbuff[position+1] = bytes;
+	bytes >>= 8;
+	sendbuff[position+2] = bytes;
+	bytes >>= 8;
+	sendbuff[position+3] = bytes;
+	bytes >>= 8;
 }
 
 /**
