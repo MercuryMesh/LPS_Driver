@@ -1,3 +1,4 @@
 MDK-ARM/LPS/*
 MDK-ARM/RTE/*
 MDK-ARM/DebugConfig/*
+**/*.TMP
