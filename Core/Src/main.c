@@ -38,7 +38,9 @@ uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
 void SPISend(uint8_t bytes);
 void Send32At(uint8_t position, uint32_t bytes);
 void SendAt(uint8_t position, uint8_t* bytes, uint8_t length);
-
+void ReceiveAt(uint8_t position, uint8_t* write, uint8_t len);
+void TestSend(void);
+void TestReceive(void);
 
 /**
   * @brief  The application entry point.
@@ -77,6 +79,17 @@ int main(void)
 		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
 	}
 	
+	// TX_POWER: 0x1E -> 0x0E082848
+	len = SetupSendBuff(1,0x1E,0);
+	Send32At(len, 0x0E082848);
+	SPISend(len+4);
+	
+	// set channels to 5 and set PCODES to 3
+	// enable RXPRF
+	len = SetupSendBuff(1, 0x1F, 0x00);
+	Send32At(len, (0x05) | (0x05 << 4) | (0x03 << 27) | (0x03 << 22) | (0x01 << 18));
+	SPISend(len + 4);
+	
 	//DWM "Default Configurations that should be modified"
 	// AGC_TUNE1: 0x23:04 -> 0x8870;
 	len = SetupSendBuff(1,0x23,0x04);
@@ -88,34 +101,49 @@ int main(void)
 	Send32At(len, 0x2502A907);
 	SPISend(len+4);
 	
+	// AGC_TUNE3: 0x23:12 -> 0x0035
+	len = SetupSendBuff(1,0x23,0x12);
+	Send32At(len, 0x0035);
+	SPISend(len+2);
+	
+	// DRX_TUNE0B: 0x27:02 -> 0x0001
+	len = SetupSendBuff(1, 0x27, 0x02);
+	Send32At(len, 0x0001);
+	SPISend(len + 2);
+	
+	// DRX_TUNE1a: 0x27:04 -> 0x0087
+	len = SetupSendBuff(1, 0x27, 0x04);
+	Send32At(len, 0x0087);
+	SPISend(len + 2);
+	
+	// DRX_TUNE1b: 0x27:06 -> 0x0010
+	len = SetupSendBuff(1, 0x27, 0x06);
+	Send32At(len, 0x0010);
+	SPISend(len + 2);
+	
 	// DRX_TUNE2: 0x27:08 -> 0x311A002D
 	len = SetupSendBuff(1,0x27,0x08);
 	Send32At(len, 0x311A002D);
 	SPISend(len+4);
 	
-	// LDE_CFG2: 0x2E:1806 -> 0x1607;
-	len = SetupSendBuff(1,0x2E,0x1806);
-	Send32At(len, 0x1607);
-	SPISend(len+2);
-	
-	// TX_POWER: 0x1E -> 0x0E082848
-	len = SetupSendBuff(1,0x1E,0);
-	Send32At(len, 0x0E082848);
-	SPISend(len+4);
-	
-	// RF_TXCTRL: 0x28:0C -> 0x1E3FE0
-	len = SetupSendBuff(1,0x28,0x0C);
-	Send32At(len, 0x1E3FE0);
-	SPISend(len+3);
+	// DRX_TUNE4H: 0x27:26 -> 0x0010
+	len = SetupSendBuff(1, 0x27, 0x26);
+	Send32At(len, 0x0010);
+	SPISend(len + 2);
 	
 	// RF_RXCTRLH: 0x28:0B -> 0xD8
 	len = SetupSendBuff(1, 0x28, 0x0B);
 	Send32At(len, 0xD8);
 	SPISend(len + 1);
 	
-	// TC_PGDELAY: 0x2A:0B -> 0xC0
+	// RF_TXCTRL: 0x28:0C -> 0x1E3FE3
+	len = SetupSendBuff(1,0x28,0x0C);
+	Send32At(len, 0x1E3FE3);
+	SPISend(len+3);
+	
+	// TC_PGDELAY: 0x2A:0B -> 0xB5
 	len = SetupSendBuff(1,0x2A,0x0B);
-	Send32At(len, 0xC0);
+	Send32At(len, 0xB5);
 	SPISend(len+1);
 	
 	// FS_PLLCFG -> 0x0800041D
@@ -128,6 +156,17 @@ int main(void)
 	Send32At(len, 0xBE);
 	SPISend(len+1);
 	
+	// LDE_CFG2: 0x2E:1806 -> 0x1607;
+	len = SetupSendBuff(1,0x2E,0x1806);
+	Send32At(len, 0x1607);
+	SPISend(len+2);
+	
+	// LDE_REPC: 0x2E:2804 -> 0x51EA
+	len = SetupSendBuff(1, 0x2E, 0x2804);
+	Send32At(len, 0x51EA);
+	SPISend(len + 2);
+	
+	
 	// LDELOAD
 	// PMSC_CTRL0: 0x36:00 -> 0x0301
 	len = SetupSendBuff(1,0x36,0);
@@ -139,12 +178,6 @@ int main(void)
 	Send32At(len, 0x8000);
 	SPISend(len+2);
 	
-	// set channels to 5 and set PCODES to 3
-	// enable RXPRF
-	len = SetupSendBuff(1, 0x1F, 0x00);
-	Send32At(len, (0x05) | (0x05 << 4) | (0x03 << 27) | (0x03 << 22) | (0x01 << 18));
-	SPISend(len + 4);
-	
 	HAL_Delay(1);
 	
 	// PMSC_CTRL0: 0x36:00 -> 0x0200
@@ -152,9 +185,16 @@ int main(void)
 	Send32At(len, 0x0200);
 	SPISend(len+2);
 	
+
+  while (1)
+  {
+  }
+}
+
+void TestSend(void) {
 	// set transmit data buffer
 	// TX_BUFFER: 0x09:00 -> 'Hello, World!'
-	len = SetupSendBuff(1, 0x09, 0);
+	uint8_t len = SetupSendBuff(1, 0x09, 0);
 	char *d = "Hello, World!";
 	SendAt(len, (uint8_t *) d, sizeof(d));
 	SPISend(len + sizeof(d));
@@ -164,7 +204,7 @@ int main(void)
   // TFLEN = sizeof(d) + 2
 	// TFLE = 0
 	// R = 0
-	// TXBR = 01
+	// TXBR = 10
 	// TR = 1
 	// TXPRF = 01
 	// TXPSR = 01
@@ -204,9 +244,83 @@ int main(void)
 			transmit_string("not done yet\n\r");
 		}
 	}
-	while (1)
-  {
-  }
+}
+
+void TestReceive(void) {
+	HAL_Delay(200);
+	
+	// SYS_CTRL: 0x0D:01 -> 0x01
+	uint8_t len = SetupSendBuff(1,0x0D,0x01);
+	Send32At(len, 0x01);
+	SPISend(len+1);
+	
+	// SYS_STATUS: GET 0x0F:01
+	len = SetupSendBuff(0,0x0F,0x01);
+	while(1)
+	{
+		HAL_Delay(100);
+		SPISend(len+2);
+		if(receivebuff[len] & (1))
+		{
+			transmit_string("Preamble");
+		}
+		if(receivebuff[len] & (1<<1))
+		{
+			transmit_string("SFD");
+		}
+		if(receivebuff[len] & (1<<2))
+		{
+			transmit_string("LDE");
+		}
+		if(receivebuff[len] & (1<<3))
+		{
+			transmit_string("PHY");
+		}
+		if(receivebuff[len] & (1<<4))
+		{
+			transmit_string("PHYError");
+		}
+		if(receivebuff[len] & (1<<5))
+		{
+			transmit_string("FrameDone");
+			break;
+		}
+		if(receivebuff[len] & (1<<6))
+		{
+			transmit_string("FCS");
+		}
+		if(receivebuff[len] & (1<<7))
+		{
+			transmit_string("FCSError");
+		}
+		if(receivebuff[len+1] & (1))
+		{
+			transmit_string("FrameSyncLoss");
+		}
+		if(receivebuff[len+1] & (1<<1))
+		{
+			transmit_string("FrameTimeout");
+		}
+		if(receivebuff[len+1] & (1<<2))
+		{
+			transmit_string("LeadingEdgeDetectionError");
+		}
+		if(receivebuff[len+1] & (1<<5))
+		{
+			transmit_string("PreambleDetectionTimeout");
+		}
+		transmit_string("Waiting\n\r");
+	}
+	transmit_string("We Got Something!\n\r");
+	
+	// SYS_STATUS: GET 0x11:01
+	len = SetupSendBuff(0,0x11,0);
+	SPISend(len+13);
+	
+	uint8_t stringrec [14] = {0};
+	ReceiveAt(len, stringrec, 13);
+	transmit_string((char*)stringrec);
+	transmit_string("\n\r");
 }
 
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg)
@@ -253,6 +367,13 @@ void Send32At(uint8_t position, uint32_t bytes)
 void SendAt(uint8_t position, uint8_t* bytes, uint8_t length) {
 	for (int i = 0; i < length; i++) {
 		sendbuff[position + i] = bytes[length - 1 - i];
+	}
+}
+
+void ReceiveAt(uint8_t position, uint8_t* write, uint8_t len)
+{
+	for (int i = 0; i < len; i++) {
+		write[len - 1 - i] = receivebuff[position + i];
 	}
 }
 
