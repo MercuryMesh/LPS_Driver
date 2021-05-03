@@ -22,9 +22,9 @@
 #include "uart.h"
 #include "timer.h"
 
-
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi2;
 
 uint8_t sendbuff [128];
 uint8_t receivebuff [128];
@@ -34,13 +34,15 @@ uint8_t receivebuff [128];
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
+void dw_init(SPI_HandleTypeDef* spi_instance);
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
-void SPISend(uint8_t bytes);
+void SPISend(SPI_HandleTypeDef* instance, uint8_t bytes);
 void Send32At(uint8_t position, uint32_t bytes);
 void SendAt(uint8_t position, uint8_t* bytes, uint8_t length);
 void ReceiveAt(uint8_t position, uint8_t* write, uint8_t len);
-void TestSend(void);
-void TestReceive(void);
+void TestSend(SPI_HandleTypeDef* spi_instance);
+void TestReceive(SPI_HandleTypeDef* spi_instance);
 
 /**
   * @brief  The application entry point.
@@ -60,206 +62,21 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_SPI1_Init();
+	MX_SPI2_Init();
 	uart_init(115200);
-	tim3_init(500, 1);
-
+	tim3_init(2000, 1);
 	
-	uint8_t len = SetupSendBuff(0,0,0);
-	SPISend(len+4);
+	dw_init(&hspi1);
+	dw_init(&hspi2);
 	
-	uint32_t val = (receivebuff[len]) | (receivebuff[len+1] << 8) | (receivebuff[len+2] << 16) | (receivebuff[len+3] << 24);
-	
-	if (val == 0xDECA0130) {
-		// SUCCESS. Light green LED
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
-        	transmit_string("looks good! Love that for you\n\r");
-	} else {
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
-	}
-	
-	// TX_POWER: 0x1E -> 0x0E082848
-	len = SetupSendBuff(1,0x1E,0);
-	Send32At(len, 0x0E082848);
-	SPISend(len+4);
-	
-	// set channels to 5 and set PCODES to 3
-	// enable RXPRF
-	len = SetupSendBuff(1, 0x1F, 0x00);
-	Send32At(len, (0x05) | (0x05 << 4) | (0x03 << 27) | (0x03 << 22) | (0x01 << 18));
-	SPISend(len + 4);
-	
-	//DWM "Default Configurations that should be modified"
-	// AGC_TUNE1: 0x23:04 -> 0x8870;
-	len = SetupSendBuff(1,0x23,0x04);
-	Send32At(len, 0x8870);
-	SPISend(len+2);
-	
-	// AGC_TUNE2: 0x23:0C -> 0x2502A907
-	len = SetupSendBuff(1,0x23,0x0C);
-	Send32At(len, 0x2502A907);
-	SPISend(len+4);
-	
-	// AGC_TUNE3: 0x23:12 -> 0x0035
-	len = SetupSendBuff(1,0x23,0x12);
-	Send32At(len, 0x0035);
-	SPISend(len+2);
-	
-	// DRX_TUNE0B: 0x27:02 -> 0x0001
-	len = SetupSendBuff(1, 0x27, 0x02);
-	Send32At(len, 0x0001);
-	SPISend(len + 2);
-	
-	// DRX_TUNE1a: 0x27:04 -> 0x0087
-	len = SetupSendBuff(1, 0x27, 0x04);
-	Send32At(len, 0x0087);
-	SPISend(len + 2);
-	
-	// DRX_TUNE1b: 0x27:06 -> 0x0010
-	len = SetupSendBuff(1, 0x27, 0x06);
-	Send32At(len, 0x0010);
-	SPISend(len + 2);
-	
-	// DRX_TUNE2: 0x27:08 -> 0x311A002D
-	len = SetupSendBuff(1,0x27,0x08);
-	Send32At(len, 0x311A002D);
-	SPISend(len+4);
-	
-	// DRX_TUNE4H: 0x27:26 -> 0x0010
-	len = SetupSendBuff(1, 0x27, 0x26);
-	Send32At(len, 0x0010);
-	SPISend(len + 2);
-	
-	// RF_RXCTRLH: 0x28:0B -> 0xD8
-	len = SetupSendBuff(1, 0x28, 0x0B);
-	Send32At(len, 0xD8);
-	SPISend(len + 1);
-	
-	// RF_TXCTRL: 0x28:0C -> 0x1E3FE3
-	len = SetupSendBuff(1,0x28,0x0C);
-	Send32At(len, 0x1E3FE3);
-	SPISend(len+3);
-	
-	// TC_PGDELAY: 0x2A:0B -> 0xB5
-	len = SetupSendBuff(1,0x2A,0x0B);
-	Send32At(len, 0xB5);
-	SPISend(len+1);
-	
-	// FS_PLLCFG -> 0x0800041D
-	len = SetupSendBuff(1, 0x2B, 0x07);
-	Send32At(len, 0x0800041D);
-	SPISend(len + 4);
-	
-	// FS_PLLTUNE: 0x2B:0B -> 0xBE
-	len = SetupSendBuff(1,0x2B,0x0B);
-	Send32At(len, 0xBE);
-	SPISend(len+1);
-	
-	// LDE_CFG2: 0x2E:1806 -> 0x1607;
-	len = SetupSendBuff(1,0x2E,0x1806);
-	Send32At(len, 0x1607);
-	SPISend(len+2);
-	
-	// LDE_REPC: 0x2E:2804 -> 0x51EA
-	len = SetupSendBuff(1, 0x2E, 0x2804);
-	Send32At(len, 0x51EA);
-	SPISend(len + 2);
-	
-	
-	// LDELOAD
-	// PMSC_CTRL0: 0x36:00 -> 0x0301
-	len = SetupSendBuff(1,0x36,0);
-	Send32At(len, 0x0301);
-	SPISend(len+2);
-	
-	// OTP_CTRL: 0x2D:06 -> 0x8000
-	len = SetupSendBuff(1,0x2D,0x06);
-	Send32At(len, 0x8000);
-	SPISend(len+2);
-	
-	HAL_Delay(1);
-	
-	// PMSC_CTRL0: 0x36:00 -> 0x0200
-	len = SetupSendBuff(1,0x36,0);
-	Send32At(len, 0x0200);
-	SPISend(len+2);
-	
-
-  while (1)
-  {
-  }
-}
-
-void TestSend(void) {
-	// set transmit data buffer
-	// TX_BUFFER: 0x09:00 -> 'Hello, World!'
-	uint8_t len = SetupSendBuff(1, 0x09, 0);
-	char *d = "Hello, World!";
-	SendAt(len, (uint8_t *) d, sizeof(d));
-	SPISend(len + sizeof(d));
-	
-	
-	// set transmit frame control
-  // TFLEN = sizeof(d) + 2
-	// TFLE = 0
-	// R = 0
-	// TXBR = 10
-	// TR = 1
-	// TXPRF = 01
-	// TXPSR = 01
-	// PE = 00
-	// TXBOFFS = 0
-	uint32_t config = (0xF) | (0x02 << 13) | (0x01 << 15) | (0x01 << 16) | (0x01 << 18);
-	len = SetupSendBuff(1, 0x08, 0);
-	SendAt(len, (uint8_t *) &config, 4);
-	SPISend(len + 4);
-	
-	// Set the transmit start bit in the System Control Register
-	// SYS_CTRL[0] = 0x02
-	len = SetupSendBuff(1, 0x0D, 0);
-	uint8_t c = (0x01 << 1);
-	SendAt(len, &c, 1);
-	SPISend(len + 1);
-	
-	len = SetupSendBuff(0, 0x0F, 0);
-	while (1) {
-		// HAL_Delay(100);
-		SPISend(len + 1);
-		
-		uint8_t status = receivebuff[len];
-		if (status & (0x01 << 4)) {
-			transmit_string("transmit frame begins\n\r");
-		}
-		if (status & (0x01 << 5)) {
-			transmit_string("transmit preamble sent\n\r");
-		}
-		if (status & (0x01 << 6)) {
-			transmit_string("transmit PHY header sent\n\r");
-		}
-		if (status & (0x01 << 7)) {
-			transmit_string("transmission complete!\n\r");
-			break;
-		} else {
-			transmit_string("not done yet\n\r");
-		}
-	}
-}
-
-void TestReceive(void) {
-	HAL_Delay(200);
-	
-	// SYS_CTRL: 0x0D:01 -> 0x01
-	uint8_t len = SetupSendBuff(1,0x0D,0x01);
-	Send32At(len, 0x01);
-	SPISend(len+1);
-	
-	// SYS_STATUS: GET 0x0F:01
-	len = SetupSendBuff(0,0x0F,0x01);
+	TestReceive(&hspi2);
+	HAL_Delay(1000);
+	uint16_t count = 0;
 	while(1)
 	{
-		HAL_Delay(100);
-		SPISend(len+2);
+		// SYS_STATUS: GET 0x0F:01
+		uint8_t len = SetupSendBuff(0,0x0F,0x01);
+		SPISend(&hspi2, len+2);
 		if(receivebuff[len] & (1))
 		{
 			transmit_string("Preamble");
@@ -279,6 +96,10 @@ void TestReceive(void) {
 		if(receivebuff[len] & (1<<4))
 		{
 			transmit_string("PHYError");
+			count++;
+			if (count > 10) {
+				break;
+			}
 		}
 		if(receivebuff[len] & (1<<5))
 		{
@@ -310,17 +131,249 @@ void TestReceive(void) {
 			transmit_string("PreambleDetectionTimeout");
 		}
 		transmit_string("Waiting\n\r");
+		HAL_Delay(333);
 	}
 	transmit_string("We Got Something!\n\r");
 	
 	// SYS_STATUS: GET 0x11:01
-	len = SetupSendBuff(0,0x11,0);
-	SPISend(len+13);
+	uint8_t len = SetupSendBuff(0,0x11,0);
+	SPISend(&hspi2, len+13);
 	
 	uint8_t stringrec [14] = {0};
 	ReceiveAt(len, stringrec, 13);
 	transmit_string((char*)stringrec);
 	transmit_string("\n\r");
+  while (1)
+  {
+  }
+}
+
+void dw_init(SPI_HandleTypeDef* spi_instance) {
+	uint8_t len = SetupSendBuff(0,0,0);
+	SPISend(spi_instance, len+4);
+	
+	uint32_t val = (receivebuff[len]) | (receivebuff[len+1] << 8) | (receivebuff[len+2] << 16) | (receivebuff[len+3] << 24);
+	
+	if (val == 0xDECA0130) {
+		// SUCCESS. Light green LED
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
+        	transmit_string("looks good! Love that for you\n\r");
+	} else {
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_SET);
+	}
+	
+	len = SetupSendBuff(0x01, 0x2C, 0x00);
+	Send32At(len, (0x01 << 11));
+	SPISend(spi_instance, len + 2);
+	
+		// trigger a soft reset
+	len = SetupSendBuff(0, 0x36, 0x00);
+	SPISend(spi_instance, len + 1);
+	
+	// force clock to 19.2 MHz
+	uint8_t temp = receivebuff[len];
+	temp |= (0x01);
+	temp &= ~(0x01 << 1);
+	len = SetupSendBuff(1, 0x36, 0x00);
+	Send32At(len, temp);
+	SPISend(spi_instance, len + 1);
+	
+	// set all soft reset bits to 0000
+	len = SetupSendBuff(1, 0x36, 0x03);
+	Send32At(len, ~0xFF);
+	SPISend(spi_instance, len + 1);
+	
+	HAL_Delay(10);
+	
+	// set all soft reset bits back to 1111
+	len = SetupSendBuff(1, 0x36, 0x03);
+	Send32At(len, 0xF0);
+	SPISend(spi_instance, len + 1);
+	
+	// put clock back in auto mode
+	temp &= ~((0x01 << 1) | 0x01);
+	len = SetupSendBuff(1, 0x36, 0x00);
+	Send32At(len, temp);
+	SPISend(spi_instance, len + 1);
+	
+	// soft reset done
+	
+	HAL_Delay(10);
+	
+	// TX_POWER: 0x1E -> 0x15355575
+	len = SetupSendBuff(1,0x1E,0);
+	Send32At(len, 0x15355575);
+	SPISend(spi_instance, len+4);
+	
+	// set channels to 1 and set PCODES to 1
+	// enable RXPRF
+	len = SetupSendBuff(1, 0x1F, 0x00);
+	Send32At(len, (0x01) | (0x01 << 4) | (0x01 << 27) | (0x01 << 22) | (0x01 << 18));
+	SPISend(spi_instance, len + 4);
+	
+	//DWM "Default Configurations that should be modified"
+	// AGC_TUNE1: 0x23:04 -> 0x8870;
+	len = SetupSendBuff(1,0x23,0x04);
+	Send32At(len, 0x8870);
+	SPISend(spi_instance, len+2);
+	
+	// AGC_TUNE2: 0x23:0C -> 0x2502A907
+	len = SetupSendBuff(1,0x23,0x0C);
+	Send32At(len, 0x2502A907);
+	SPISend(spi_instance, len+4);
+	
+	// AGC_TUNE3: 0x23:12 -> 0x0035
+	len = SetupSendBuff(1,0x23,0x12);
+	Send32At(len, 0x0035);
+	SPISend(spi_instance, len+2);
+	
+	// DRX_TUNE0B: 0x27:02 -> 0x0001
+	len = SetupSendBuff(1, 0x27, 0x02);
+	Send32At(len, 0x0001);
+	SPISend(spi_instance, len + 2);
+	
+	// DRX_TUNE1a: 0x27:04 -> 0x0087
+	len = SetupSendBuff(1, 0x27, 0x04);
+	Send32At(len, 0x0087);
+	SPISend(spi_instance, len + 2);
+	
+	// DRX_TUNE1b: 0x27:06 -> 0x0010
+	len = SetupSendBuff(1, 0x27, 0x06);
+	Send32At(len, 0x0010);
+	SPISend(spi_instance, len + 2);
+	
+	// DRX_TUNE2: 0x27:08 -> 0x311A002D
+	len = SetupSendBuff(1,0x27,0x08);
+	Send32At(len, 0x311A002D);
+	SPISend(spi_instance, len+4);
+	
+	// DRX_TUNE4H: 0x27:26 -> 0x0010
+	len = SetupSendBuff(1, 0x27, 0x26);
+	Send32At(len, 0x0010);
+	SPISend(spi_instance, len + 2);
+	
+	// RF_RXCTRLH: 0x28:0B -> 0xD8
+	len = SetupSendBuff(1, 0x28, 0x0B);
+	Send32At(len, 0xD8);
+	SPISend(spi_instance, len + 1);
+	
+	// RF_TXCTRL: 0x28:0C -> 0x00005C40
+	len = SetupSendBuff(1,0x28,0x0C);
+	Send32At(len, 0x00005C40);
+	SPISend(spi_instance, len+3);
+	
+	// TC_PGDELAY: 0x2A:0B -> 0xC9
+	len = SetupSendBuff(1,0x2A,0x0B);
+	Send32At(len, 0xC9);
+	SPISend(spi_instance, len+1);
+	
+	// FS_PLLCFG -> 0x09000407
+	len = SetupSendBuff(1, 0x2B, 0x07);
+	Send32At(len, 0x09000407);
+	SPISend(spi_instance, len + 4);
+	
+	// FS_PLLTUNE: 0x2B:0B -> 0x1E
+	len = SetupSendBuff(1,0x2B,0x0B);
+	Send32At(len, 0x1E);
+	SPISend(spi_instance, len+1);
+	
+	// LDE_CFG2: 0x2E:1806 -> 0x1607;
+	len = SetupSendBuff(1,0x2E,0x1806);
+	Send32At(len, 0x1607);
+	SPISend(spi_instance, len+2);
+	
+	// LDE_REPC: 0x2E:2804 -> 0x5998
+	len = SetupSendBuff(1, 0x2E, 0x2804);
+	Send32At(len, 0x5998);
+	SPISend(spi_instance, len + 2);
+	
+	// LDELOAD
+	// PMSC_CTRL0: 0x36:00 -> 0x0301
+	len = SetupSendBuff(1,0x36,0);
+	Send32At(len, 0x0301);
+	SPISend(spi_instance, len+2);
+	
+	// OTP_CTRL: 0x2D:06 -> 0x8000
+	len = SetupSendBuff(1,0x2D,0x06);
+	Send32At(len, 0x8000);
+	SPISend(spi_instance, len+2);
+	
+	HAL_Delay(1);
+	
+	// PMSC_CTRL0: 0x36:00 -> 0x0200
+	len = SetupSendBuff(1,0x36,0);
+	Send32At(len, 0x0200);
+	SPISend(spi_instance, len+2);
+}
+
+void TestSend(SPI_HandleTypeDef* spi_instance) {
+	// set transmit data buffer
+	// set transmit frame control
+  // TFLEN = sizeof(d) + 2
+	// TFLE = 0
+	// R = 0
+	// TXBR = 10
+	// TR = 1
+	// TXPRF = 01
+	// TXPSR = 01
+	// PE = 00
+	// TXBOFFS = 0
+	uint32_t config = (0x10) | (0x01 << 14) | (0x01 << 15) | (0x01 << 18) | (0x01 << 16);
+	uint8_t len = SetupSendBuff(1, 0x08, 0);
+	Send32At(len, config);
+	SPISend(spi_instance, len + 4);
+	
+	// TX_BUFFER: 0x09:00 -> 'Hello, World!'
+	len = SetupSendBuff(1, 0x09, 0);
+	char *d = "Hello, World!";
+	SendAt(len, (uint8_t *) d, 13);
+	SPISend(spi_instance, len + 14);
+	
+	// Set the transmit start bit in the System Control Register
+	// SYS_CTRL[0] = 0x02
+	len = SetupSendBuff(1, 0x0D, 0);
+	Send32At(len, (0x01 << 1));
+	SPISend(spi_instance, len + 1);
+	
+	transmit_string("test send called\n\r");
+
+/*
+	while (1) {
+		HAL_Delay(1000);
+		len = SetupSendBuff(0, 0x0F, 0);
+		SPISend(spi_instance, len + 1);
+		
+		uint8_t status = receivebuff[len];
+		if (status & (0x01 << 4)) {
+			transmit_string("transmit frame begins\n\r");
+		}
+		if (status & (0x01 << 5)) {
+			transmit_string("transmit preamble sent\n\r");
+		}
+		if (status & (0x01 << 6)) {
+			transmit_string("transmit PHY header sent\n\r");
+		}
+		if (status & (0x01 << 7)) {
+			transmit_string("transmission complete!\n\r");
+			break;
+		} else {
+			transmit_string("not done yet\n\r");
+		}
+	}
+*/
+}
+
+void TestReceive(SPI_HandleTypeDef* spi_instance) {
+	HAL_Delay(200);
+	
+	// SYS_CTRL: 0x0D:01 -> 0x01
+	uint8_t len = SetupSendBuff(1,0x0D,0x01);
+	Send32At(len, 0x01);
+	SPISend(spi_instance, len+1);
+	
+	
 }
 
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg)
@@ -345,11 +398,19 @@ uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg)
 	return 1;
 }
 
-void SPISend(uint8_t bytes)
+void SPISend(SPI_HandleTypeDef* instance, uint8_t bytes)
 {
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
-	HAL_SPI_TransmitReceive(&hspi1, sendbuff, receivebuff, bytes, HAL_MAX_DELAY);
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	if (instance->Instance == SPI1) {
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+	} else {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
+	}
+	HAL_SPI_TransmitReceive(instance, sendbuff, receivebuff, bytes, HAL_MAX_DELAY);
+	if (instance->Instance == SPI1) {
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	} else {
+		HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
+	}
 }
 
 void Send32At(uint8_t position, uint32_t bytes)
@@ -434,7 +495,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -451,9 +512,84 @@ static void MX_SPI1_Init(void)
 
 }
 
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 7;
+  hspi2.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi2.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
 void TIM3_IRQHandler() {
 	// do thing
-	// transmit_string("timer time\n\r");
+	static uint8_t sent = 0;
+	static uint16_t call_count = 0;
+	call_count++;
+	
+	if (call_count > 4 && !sent) {
+		sent = 1;
+		transmit_string("Starting send\n\r");
+		TestSend(&hspi1);
+	}
+	
+	if (sent == 1) {
+		uint8_t len = SetupSendBuff(0, 0x0F, 0);
+		SPISend(&hspi1, len + 1);
+		uint8_t status = receivebuff[len];
+		// ReceiveAt(len, (uint8_t *) &status, 4);
+		if (status & (0x01 << 4)) {
+			transmit_string("transmit frame begins\n\r");
+		}
+		if (status & (0x01 << 5)) {
+			transmit_string("transmit preamble sent\n\r");
+		}
+		if (status & (0x01 << 6)) {
+			transmit_string("transmit PHY header sent\n\r");
+		}
+		if (status & (0x01 << 28)) {
+			transmit_string("transmit buffer error\n\r");
+		}
+		if (status & (0x01 << 7)) {
+			transmit_string("transmission complete!\n\r");
+			sent = 0;
+			call_count = 0;
+		} else {
+			transmit_string("not done yet\n\r");
+		}
+	}
+	// transmit_string("timer time\n\r")
 	TIM3->SR &= ~(0x01);
 }
 
@@ -470,6 +606,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
 	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin : PA4 */
   GPIO_InitStruct.Pin = GPIO_PIN_4;
@@ -478,6 +615,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 	
+	/*Configure GPIO pin: PB12 */
+	GPIO_InitStruct.Pin = GPIO_PIN_12;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 	
 	GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_9;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -485,6 +627,7 @@ static void MX_GPIO_Init(void)
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 	
 	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_SET);
 }
 
 /* USER CODE BEGIN 4 */
