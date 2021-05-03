@@ -37,6 +37,7 @@ static void MX_SPI1_Init(void);
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
 void SPISend(uint8_t bytes);
 void Send32At(uint8_t position, uint32_t bytes);
+void SendAt(uint8_t position, uint8_t* bytes, uint8_t length);
 
 
 /**
@@ -102,15 +103,25 @@ int main(void)
 	Send32At(len, 0x0E082848);
 	SPISend(len+4);
 	
-	// RF_TXCTRL: 0x28:0C -> 0x1E3FE3
+	// RF_TXCTRL: 0x28:0C -> 0x1E3FE0
 	len = SetupSendBuff(1,0x28,0x0C);
-	Send32At(len, 0x1E3FE3);
+	Send32At(len, 0x1E3FE0);
 	SPISend(len+3);
 	
-	// TC_PGDELAY: 0x2A:0B -> 0xB5
+	// RF_RXCTRLH: 0x28:0B -> 0xD8
+	len = SetupSendBuff(1, 0x28, 0x0B);
+	Send32At(len, 0xD8);
+	SPISend(len + 1);
+	
+	// TC_PGDELAY: 0x2A:0B -> 0xC0
 	len = SetupSendBuff(1,0x2A,0x0B);
-	Send32At(len, 0xB5);
+	Send32At(len, 0xC0);
 	SPISend(len+1);
+	
+	// FS_PLLCFG -> 0x0800041D
+	len = SetupSendBuff(1, 0x2B, 0x07);
+	Send32At(len, 0x0800041D);
+	SPISend(len + 4);
 	
 	// FS_PLLTUNE: 0x2B:0B -> 0xBE
 	len = SetupSendBuff(1,0x2B,0x0B);
@@ -128,14 +139,72 @@ int main(void)
 	Send32At(len, 0x8000);
 	SPISend(len+2);
 	
+	// set channels to 5 and set PCODES to 3
+	// enable RXPRF
+	len = SetupSendBuff(1, 0x1F, 0x00);
+	Send32At(len, (0x05) | (0x05 << 4) | (0x03 << 27) | (0x03 << 22) | (0x01 << 18));
+	SPISend(len + 4);
+	
 	HAL_Delay(1);
 	
 	// PMSC_CTRL0: 0x36:00 -> 0x0200
 	len = SetupSendBuff(1,0x36,0);
 	Send32At(len, 0x0200);
 	SPISend(len+2);
-
-  while (1)
+	
+	// set transmit data buffer
+	// TX_BUFFER: 0x09:00 -> 'Hello, World!'
+	len = SetupSendBuff(1, 0x09, 0);
+	char *d = "Hello, World!";
+	SendAt(len, (uint8_t *) d, sizeof(d));
+	SPISend(len + sizeof(d));
+	
+	
+	// set transmit frame control
+  // TFLEN = sizeof(d) + 2
+	// TFLE = 0
+	// R = 0
+	// TXBR = 01
+	// TR = 1
+	// TXPRF = 01
+	// TXPSR = 01
+	// PE = 00
+	// TXBOFFS = 0
+	uint32_t config = (0xF) | (0x02 << 13) | (0x01 << 15) | (0x01 << 16) | (0x01 << 18);
+	len = SetupSendBuff(1, 0x08, 0);
+	SendAt(len, (uint8_t *) &config, 4);
+	SPISend(len + 4);
+	
+	// Set the transmit start bit in the System Control Register
+	// SYS_CTRL[0] = 0x02
+	len = SetupSendBuff(1, 0x0D, 0);
+	uint8_t c = (0x01 << 1);
+	SendAt(len, &c, 1);
+	SPISend(len + 1);
+	
+	len = SetupSendBuff(0, 0x0F, 0);
+	while (1) {
+		// HAL_Delay(100);
+		SPISend(len + 1);
+		
+		uint8_t status = receivebuff[len];
+		if (status & (0x01 << 4)) {
+			transmit_string("transmit frame begins\n\r");
+		}
+		if (status & (0x01 << 5)) {
+			transmit_string("transmit preamble sent\n\r");
+		}
+		if (status & (0x01 << 6)) {
+			transmit_string("transmit PHY header sent\n\r");
+		}
+		if (status & (0x01 << 7)) {
+			transmit_string("transmission complete!\n\r");
+			break;
+		} else {
+			transmit_string("not done yet\n\r");
+		}
+	}
+	while (1)
   {
   }
 }
@@ -179,6 +248,12 @@ void Send32At(uint8_t position, uint32_t bytes)
 	bytes >>= 8;
 	sendbuff[position+3] = bytes;
 	bytes >>= 8;
+}
+
+void SendAt(uint8_t position, uint8_t* bytes, uint8_t length) {
+	for (int i = 0; i < length; i++) {
+		sendbuff[position + i] = bytes[length - 1 - i];
+	}
 }
 
 /**
@@ -257,7 +332,7 @@ static void MX_SPI1_Init(void)
 
 void TIM3_IRQHandler() {
 	// do thing
-	transmit_string("timer time\n\r");
+	// transmit_string("timer time\n\r");
 	TIM3->SR &= ~(0x01);
 }
 
