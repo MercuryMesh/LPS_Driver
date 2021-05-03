@@ -37,6 +37,7 @@ static void MX_SPI1_Init(void);
 uint8_t SetupSendBuff(uint8_t send, uint8_t reg, uint16_t subreg);
 void SPISend(uint8_t bytes);
 void Send32At(uint8_t position, uint32_t bytes);
+void ReceiveAt(uint8_t position, uint8_t* write, uint8_t len);
 
 
 /**
@@ -87,6 +88,11 @@ int main(void)
 	Send32At(len, 0x2502A907);
 	SPISend(len+4);
 	
+	// AGC_TUNE3: 0x23:12 -> 0x0035
+	len = SetupSendBuff(1,0x23,0x12);
+	Send32At(len, 0x0035);
+	SPISend(len+2);
+	
 	// DRX_TUNE2: 0x27:08 -> 0x311A002D
 	len = SetupSendBuff(1,0x27,0x08);
 	Send32At(len, 0x311A002D);
@@ -135,6 +141,81 @@ int main(void)
 	Send32At(len, 0x0200);
 	SPISend(len+2);
 
+	HAL_Delay(200);
+	
+	// SYS_CTRL: 0x0D:01 -> 0x01
+	len = SetupSendBuff(1,0x0D,0x01);
+	Send32At(len, 0x01);
+	SPISend(len+1);
+	
+	// SYS_STATUS: GET 0x0F:01
+	len = SetupSendBuff(0,0x0F,0x01);
+	while(1)
+	{
+		HAL_Delay(100);
+		SPISend(len+2);
+		if(receivebuff[len] & (1))
+		{
+			transmit_string("Preamble");
+		}
+		if(receivebuff[len] & (1<<1))
+		{
+			transmit_string("SFD");
+		}
+		if(receivebuff[len] & (1<<2))
+		{
+			transmit_string("LDE");
+		}
+		if(receivebuff[len] & (1<<3))
+		{
+			transmit_string("PHY");
+		}
+		if(receivebuff[len] & (1<<4))
+		{
+			transmit_string("PHYError");
+		}
+		if(receivebuff[len] & (1<<5))
+		{
+			transmit_string("FrameDone");
+			break;
+		}
+		if(receivebuff[len] & (1<<6))
+		{
+			transmit_string("FCS");
+		}
+		if(receivebuff[len] & (1<<7))
+		{
+			transmit_string("FCSError");
+		}
+		if(receivebuff[len+1] & (1))
+		{
+			transmit_string("FrameSyncLoss");
+		}
+		if(receivebuff[len+1] & (1<<1))
+		{
+			transmit_string("FrameTimeout");
+		}
+		if(receivebuff[len+1] & (1<<2))
+		{
+			transmit_string("LeadingEdgeDetectionError");
+		}
+		if(receivebuff[len+1] & (1<<5))
+		{
+			transmit_string("PreambleDetectionTimeout");
+		}
+		transmit_string("Waiting\n\r");
+	}
+	transmit_string("We Got Something!\n\r");
+	
+	// SYS_STATUS: GET 0x11:01
+	len = SetupSendBuff(0,0x11,0);
+	SPISend(len+13);
+	
+	uint8_t stringrec [14] = {0};
+	ReceiveAt(len, stringrec, 13);
+	transmit_string((char*)stringrec);
+	transmit_string("\n\r");
+
   while (1)
   {
   }
@@ -179,6 +260,13 @@ void Send32At(uint8_t position, uint32_t bytes)
 	bytes >>= 8;
 	sendbuff[position+3] = bytes;
 	bytes >>= 8;
+}
+
+void ReceiveAt(uint8_t position, uint8_t* write, uint8_t len)
+{
+	for (int i = 0; i < len; i++) {
+		write[len - 1 - i] = receivebuff[position + i];
+	}
 }
 
 /**
