@@ -329,6 +329,7 @@ void TestSend(SPI_HandleTypeDef* spi_instance) {
 	len = SetupSendBuff(1, 0x09, 0);
 	char *d = "Hello, World!";
 	SendAt(len, (uint8_t *) d, 13);
+	sendbuff[len + 13] = 0;
 	SPISend(spi_instance, len + 14);
 	
 	// Set the transmit start bit in the System Control Register
