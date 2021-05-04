@@ -1,5 +1,6 @@
 #include "stm32f0xx_hal.h"
 #include "device_com.h"
+#include "uart.h"
 
 void begin_receiving(void);
 uint8_t await_receive(void);
@@ -64,4 +65,44 @@ uint8_t await_receive(void) {
 		}
 		HAL_Delay(200);
 	}
+}
+
+/**
+  * @brief IRQ handler for SPI1 (via EXTI line 1, PC1)
+	* (receive data frame ready).
+  */
+void EXTI0_1_IRQHandler(void)
+{
+	transmit_string("We Got Something on 1!\n\r");
+	
+//	// SYS_STATUS: GET 0x11:01
+//	uint8_t len = SetupSendBuff(0,0x11,0);
+//	SPISend(&hspi1, len+13);
+//	
+//	uint8_t stringrec [14] = {0};
+//	ReceiveAt(len, stringrec, 13);
+//	transmit_string((char*)stringrec);
+//	transmit_string("\n\r");
+	
+	EXTI->PR |= (1 << 1);
+}
+
+/**
+  * @brief IRQ handler for SPI1 (via EXTI line 1, PC1)
+	* (receive data frame ready).
+  */
+void EXTI2_3_IRQHandler(void)
+{
+	transmit_string("We Got Something on 2!\n\r");
+	
+//	// SYS_STATUS: GET 0x11:01
+//	uint8_t len = SetupSendBuff(0,0x11,0);
+//	SPISend(&hspi2, len+13);
+//	
+//	uint8_t stringrec [14] = {0};
+//	ReceiveAt(len, stringrec, 13);
+//	transmit_string((char*)stringrec);
+//	transmit_string("\n\r");
+	
+	EXTI->PR |= (1 << 2);
 }

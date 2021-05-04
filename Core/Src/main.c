@@ -28,8 +28,8 @@
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void EXTI_Init(void);
 void TestSend(SPI_HandleTypeDef* spi_instance);
-void TestReceive(SPI_HandleTypeDef* spi_instance);
 
 /**
   * @brief  The application entry point.
@@ -48,6 +48,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+	EXTI_Init();
+	
   if (!MX_SPI1_Init()) {
 		transmit_string("Failed to initialize hspi1\n\r");
 		Error_Handler();
@@ -68,7 +70,6 @@ int main(void)
 		Error_Handler();
 	}
 	
-	TestReceive(&hspi2);
 	HAL_Delay(1000);
 	uint16_t count = 0;
 	while(1)
@@ -209,16 +210,6 @@ void TestSend(SPI_HandleTypeDef* spi_instance) {
 */
 }
 
-void TestReceive(SPI_HandleTypeDef* spi_instance) {
-	HAL_Delay(200);
-	
-	// SYS_CTRL: 0x0D:01 -> 0x01
-	uint8_t len = SetupSendBuff(1,0x0D,0x01);
-	Send32At(len, 0x01);
-	SPISend(spi_instance, len+1);
-}
-
-
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -295,6 +286,30 @@ void TIM3_IRQHandler() {
 	TIM3->SR &= ~(0x01);
 }
 
+static void EXTI_Init(void)
+{
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+	
+	// PC1, PC2 Input High Speed 
+	GPIOC->MODER &= ~(0xF << 2);
+	GPIOC->OSPEEDR |= (0xF << 2);
+	
+	// Configure EXTI Lines 1 and 2: Enable on Rising Edge, Port C
+	EXTI->IMR |= (3 << 1);
+	EXTI->RTSR |= (3 << 1);
+	SYSCFG->EXTICR[0] &= ~(0xF << 4);
+	SYSCFG->EXTICR[0] |= (0x01 << 5);
+	SYSCFG->EXTICR[0] &= ~(0xF << 8);
+	SYSCFG->EXTICR[0] |= (0x01 << 9);
+	
+	// Enable Interrupts, High Priority
+	NVIC_EnableIRQ(EXTI0_1_IRQn);
+	NVIC_EnableIRQ(EXTI2_3_IRQn);
+	
+	NVIC_SetPriority(EXTI0_1_IRQn, 1);
+	NVIC_SetPriority(EXTI2_3_IRQn, 1);
+}
+
 
 /**
   * @brief GPIO Initialization Function
@@ -310,19 +325,19 @@ static void MX_GPIO_Init(void)
 	__HAL_RCC_GPIOC_CLK_ENABLE();
 	__HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pin : PA4 */
+  // PA4 (SSn for SPI1)
   GPIO_InitStruct.Pin = GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  // GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 	
-	/*Configure GPIO pin: PB12 */
+	// PB12 (SSn for SPI1)
 	GPIO_InitStruct.Pin = GPIO_PIN_12;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 	
+	// LEDs PC6 PC9
 	GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_9;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
