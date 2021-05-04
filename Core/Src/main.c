@@ -22,6 +22,7 @@
 #include "uart.h"
 #include "timer.h"
 #include "device_com.h"
+#include "base_station.h"
 
 /* Private variables ---------------------------------------------------------*/
 
@@ -52,99 +53,104 @@ int main(void)
 		transmit_string("Failed to initialize hspi1\n\r");
 		Error_Handler();
 	}
+	/*
 	if (!MX_SPI2_Init()) {
 		transmit_string("Failed to initialize hspi2\n\r");
 		Error_Handler(); 
-	}
+	}*/
+	
 	uart_init(115200);
-	tim3_init(2000, 1);
+	tim3_init(500, 1);
 	
 	if (!dw_init(&hspi1)) {
 		transmit_string("Failed to initialize device on hspi1\n\r");
 		Error_Handler();
 	}
-	if (!dw_init(&hspi2)) {
-		transmit_string("Failed to initialize device on hspi2\n\r");
-		Error_Handler();
-	}
 	
-	TestReceive(&hspi2);
-	HAL_Delay(1000);
-	uint16_t count = 0;
-	while(1)
-	{
-		// SYS_STATUS: GET 0x0F:01
-		uint8_t len = SetupSendBuff(0,0x0F,0x01);
-		SPISend(&hspi2, len+2);
-		/*
-		if(receivebuff[len] & (1))
-		{
-			transmit_string("Preamble");
-		}
-		if(receivebuff[len] & (1<<1))
-		{
-			transmit_string("SFD");
-		}
-		if(receivebuff[len] & (1<<2))
-		{
-			transmit_string("LDE");
-		}
-		if(receivebuff[len] & (1<<3))
-		{
-			transmit_string("PHY");
-		}
-		*/
-		if(receivebuff[len] & (1<<4))
-		{
-			transmit_string("PHYError");
-			count++;
-			if (count > 10) {
-				break;
-			}
-		}
-		if(receivebuff[len] & (1<<5))
-		{
-			// transmit_string("FrameDone");
-			break;
-		}
-		/*
-		if(receivebuff[len] & (1<<6))
-		{
-			transmit_string("FCS");
-		}*/
-		if(receivebuff[len] & (1<<7))
-		{
-			transmit_string("FCSError");
-		}
-		if(receivebuff[len+1] & (1))
-		{
-			transmit_string("FrameSyncLoss");
-		}
-		if(receivebuff[len+1] & (1<<1))
-		{
-			transmit_string("FrameTimeout");
-		}
-		if(receivebuff[len+1] & (1<<2))
-		{
-			transmit_string("LeadingEdgeDetectionError");
-		}
-		if(receivebuff[len+1] & (1<<5))
-		{
-			transmit_string("PreambleDetectionTimeout");
-		}
-		// transmit_string("Waiting\n\r");
-		HAL_Delay(333);
-	}
-	transmit_string("We Got Something!\n\r");
-	
-	// SYS_STATUS: GET 0x11:01
-	uint8_t len = SetupSendBuff(0,0x11,0);
-	SPISend(&hspi2, len+13);
-	
-	uint8_t stringrec [14] = {0};
-	ReceiveAt(len, stringrec, 13);
-	transmit_string((char*)stringrec);
-	transmit_string("\n\r");
+	base_station_main(1);
+//	
+//	if (!dw_init(&hspi2)) {
+//		transmit_string("Failed to initialize device on hspi2\n\r");
+//		Error_Handler();
+//	}
+//	
+//	TestReceive(&hspi2);
+//	HAL_Delay(1000);
+//	uint16_t count = 0;
+//	while(1)
+//	{
+//		// SYS_STATUS: GET 0x0F:01
+//		uint8_t len = SetupSendBuff(0,0x0F,0x01);
+//		SPISend(&hspi2, len+2);
+//		/*
+//		if(receivebuff[len] & (1))
+//		{
+//			transmit_string("Preamble");
+//		}
+//		if(receivebuff[len] & (1<<1))
+//		{
+//			transmit_string("SFD");
+//		}
+//		if(receivebuff[len] & (1<<2))
+//		{
+//			transmit_string("LDE");
+//		}
+//		if(receivebuff[len] & (1<<3))
+//		{
+//			transmit_string("PHY");
+//		}
+//		*/
+//		if(receivebuff[len] & (1<<4))
+//		{
+//			transmit_string("PHYError");
+//			count++;
+//			if (count > 10) {
+//				break;
+//			}
+//		}
+//		if(receivebuff[len] & (1<<5))
+//		{
+//			// transmit_string("FrameDone");
+//			break;
+//		}
+//		/*
+//		if(receivebuff[len] & (1<<6))
+//		{
+//			transmit_string("FCS");
+//		}*/
+//		if(receivebuff[len] & (1<<7))
+//		{
+//			transmit_string("FCSError");
+//		}
+//		if(receivebuff[len+1] & (1))
+//		{
+//			transmit_string("FrameSyncLoss");
+//		}
+//		if(receivebuff[len+1] & (1<<1))
+//		{
+//			transmit_string("FrameTimeout");
+//		}
+//		if(receivebuff[len+1] & (1<<2))
+//		{
+//			transmit_string("LeadingEdgeDetectionError");
+//		}
+//		if(receivebuff[len+1] & (1<<5))
+//		{
+//			transmit_string("PreambleDetectionTimeout");
+//		}
+//		// transmit_string("Waiting\n\r");
+//		HAL_Delay(333);
+//	}
+//	transmit_string("We Got Something!\n\r");
+//	
+//	// SYS_STATUS: GET 0x11:01
+//	uint8_t len = SetupSendBuff(0,0x11,0);
+//	SPISend(&hspi2, len+13);
+//	
+//	uint8_t stringrec [14] = {0};
+//	ReceiveAt(len, stringrec, 13);
+//	transmit_string((char*)stringrec);
+//	transmit_string("\n\r");
 
   while (1)
   {
@@ -163,55 +169,21 @@ void TestSend(SPI_HandleTypeDef* spi_instance) {
 	// TXPSR = 01
 	// PE = 00
 	// TXBOFFS = 0
-	uint32_t config = (0x10) | (0x01 << 14) | (0x01 << 15) | (0x01 << 18) | (0x01 << 16);
+	uint32_t config = (0x2) | (0x01 << 14) | (0x01 << 15) | (0x01 << 18) | (0x01 << 16);
 	uint8_t len = SetupSendBuff(1, 0x08, 0);
 	Send32At(len, config);
 	SPISend(spi_instance, len + 4);
 	
-	// TX_BUFFER: 0x09:00 -> 'Hello, World!'
-	len = SetupSendBuff(1, 0x09, 0);
-	char *d = "Hello, World!";
-	SendAt(len, (uint8_t *) d, 13);
-	sendbuff[len + 13] = 0;
-	SPISend(spi_instance, len + 14);
-	
 	// Set the transmit start bit in the System Control Register
 	// SYS_CTRL[0] = 0x02
 	len = SetupSendBuff(1, 0x0D, 0);
-	Send32At(len, (0x01 << 1));
+	Send32At(len, (0x01 << 1) | (0x01 << 7));
 	SPISend(spi_instance, len + 1);
 	
-	transmit_string("test send called\n\r");
-
-/*
-	while (1) {
-		HAL_Delay(1000);
-		len = SetupSendBuff(0, 0x0F, 0);
-		SPISend(spi_instance, len + 1);
-		
-		uint8_t status = receivebuff[len];
-		if (status & (0x01 << 4)) {
-			transmit_string("transmit frame begins\n\r");
-		}
-		if (status & (0x01 << 5)) {
-			transmit_string("transmit preamble sent\n\r");
-		}
-		if (status & (0x01 << 6)) {
-			transmit_string("transmit PHY header sent\n\r");
-		}
-		if (status & (0x01 << 7)) {
-			transmit_string("transmission complete!\n\r");
-			break;
-		} else {
-			transmit_string("not done yet\n\r");
-		}
-	}
-*/
+	transmit_string("Sending initial message!\n\r");
 }
 
-void TestReceive(SPI_HandleTypeDef* spi_instance) {
-	HAL_Delay(200);
-	
+void TestReceive(SPI_HandleTypeDef* spi_instance) {	
 	// SYS_CTRL: 0x0D:01 -> 0x01
 	uint8_t len = SetupSendBuff(1,0x0D,0x01);
 	Send32At(len, 0x01);
@@ -253,43 +225,63 @@ void SystemClock_Config(void)
   }
 }
 
-
 void TIM3_IRQHandler() {
 	// do thing
-	static uint8_t sent = 0;
-	static uint16_t call_count = 0;
-	call_count++;
+	static uint16_t state = 0;
 	
-	if (call_count > 4 && !sent) {
-		sent = 1;
+	if (state < 11) {
+		state++;
+	}
+	if (state == 10) {
 		transmit_string("Starting send\n\r");
 		TestSend(&hspi1);
-	}
-	
-	if (sent == 1) {
-		uint8_t len = SetupSendBuff(0, 0x0F, 0);
-		SPISend(&hspi1, len + 1);
-		uint8_t status = receivebuff[len];
-		// ReceiveAt(len, (uint8_t *) &status, 4);
-		if (status & (0x01 << 4)) {
-			transmit_string("transmit frame begins\n\r");
-		}
-		if (status & (0x01 << 5)) {
-			transmit_string("transmit preamble sent\n\r");
-		}
-		if (status & (0x01 << 6)) {
-			transmit_string("transmit PHY header sent\n\r");
-		}
-		if (status & (0x01 << 28)) {
-			transmit_string("transmit buffer error\n\r");
-		}
-		if (status & (0x01 << 7)) {
-			transmit_string("transmission complete!\n\r");
-			sent = 0;
-			call_count = 0;
-		} else {
-			transmit_string("not done yet\n\r");
-		}
+	} else if (state == 11) {
+		transmit_string("Checking status\n\r");
+		uint8_t len = SetupSendBuff(0, 0x0F, 0x04);
+		SPISend(&hspi1, 2);
+		uint16_t status = 0;
+		ReceiveAt(len, (uint8_t *) &status, 2);
+		if (status & (0x01 << 13)) {
+			transmit_string("Data received!\n\r");
+			state = 12;
+			
+			// get that data
+			len = SetupSendBuff(0, 0x11, 0x0);
+			SPISend(&hspi1, len + 4);
+			uint8_t delay[4];
+			ReceiveAt(len, delay, 4);
+			
+			uint32_t delay_num = delay[0] << 24 | delay[1] << 16 | delay[2] << 8 | delay[3];
+			char str[11];
+			str[0] = '0';
+			str[1] = 'x';
+			to_ascii(delay_num, &(str[2]));
+			str[10] = 0;
+			transmit_string(str);
+			transmit_string("\n\r");
+			
+			len = SetupSendBuff(0, 0x15, 0x0);
+			SPISend(&hspi1, len + 5);
+			uint8_t rx_time[5];
+			ReceiveAt(len, rx_time, 5);
+			uint64_t rx_num = rx_time[0];
+			rx_num = rx_num << 32;
+			rx_num |= rx_time[1] << 24 | rx_time[2] << 16 | rx_time[3] << 8 | rx_time[4];
+			
+			len = SetupSendBuff(0, 0x17, 0x0);
+			SPISend(&hspi1, len + 5);
+			uint8_t tx_time[5];
+			ReceiveAt(len, tx_time, 5);
+			uint64_t tx_num = tx_time[0];
+			tx_num = tx_num << 32;
+			tx_num |= tx_time[1] << 24 | tx_time[2] << 16 | tx_time[3] << 8 | tx_time[4];
+			
+			uint32_t tof = (rx_num - tx_num - delay_num) / 2;
+			to_ascii(tof, &(str[2]));
+			str[10] = 0;
+			transmit_string(str);
+			transmit_string("\n\r");
+		} 
 	}
 	// transmit_string("timer time\n\r")
 	TIM3->SR &= ~(0x01);
