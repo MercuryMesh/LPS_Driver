@@ -67,6 +67,8 @@ Demonstrate 2D triangulation by using 3 base stations and one roaming station. A
 
 ## Process Explanations
 ### SPI (Revised Milestone 1)
+- [x]  Milestone Achieved!
+  
 SPI allows synchronous, serial communication between the MCU and external devices.  Application software can manage the communication by polling the status flag or using dedicated SPI interrupt.
 
 Four I/O pins are dedicated to SPI communication with external devices.
@@ -76,6 +78,8 @@ Four I/O pins are dedicated to SPI communication with external devices.
 • NSS: Slave select pin. This is being used to slave select on a negative trigger
 
 ### Cross Chip Communication (Revised Milestone 2)
+- [x]  Milestone Achieved!
+
 For the cross chip communication as explained previously, a simple "Hello, World!" message was transmitted from one chip to the other. The format of a transmission frame on a DWM 1000 chip is as follows: 
 
 ![TX Frame](./Photos/txframe.png)
@@ -83,6 +87,8 @@ For the cross chip communication as explained previously, a simple "Hello, World
 The reception of a frame is enabled by a host request or by an automatic re-enabling of the receiver. The receiver will search for preamble continually until preamble has been detected or acquired, then a demodulation will be attempted.
 
 ### Two-Way Ranging (Revised Milestone 3)
+- [ ] Milestone Achieved!
+
 Single-sided two-way ranging (SS-TWR) involves a simple measurement of the round trip delay of a single message from one node to another and a response sent back to the original node as shown in the figure below: 
 
 ![Two-Way Ranging](./Photos/twoway.png)
@@ -90,6 +96,8 @@ Single-sided two-way ranging (SS-TWR) involves a simple measurement of the round
 The operation of SS-TWR is as shown in the figure above, where device A initiates the exchange and device B responds to complete the exchange and each device precisely timestamps the transmission and reception times of the message frames, and so can calculate times *T*_round and *T*_reply by simple subtraction
 
 ### 3 Station Calculations (Revised Milestone 4)
+- [ ] Milestone Achieved!
+
 This is where the roaming station ranges to three fixed anchors. Each anchor then calculates the distance to the tag. These three distances are then combined in an infrastructure-based solver to locate the tag. 
 
 ![3 Anchor](./Photos/3anchor.png)
