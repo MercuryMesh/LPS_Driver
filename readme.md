@@ -113,7 +113,7 @@ The roaming station sends a Poll message which is received by the three anchors 
 This project uses a total of 5 labs, GPIO, Interrupts, Timers, UART, and instead of I2C we are using SPI.
 
 ## Milestones Achieved
-From the original milestones only milestone 1 was achieved, as it turns out, getting SPI to work using our STM32 discovery's is no easy feat as explained below. Hours upon hours were spent trying to get this communication protocol to work. In hindsight we bit off significantly more then we could chew. Milestone 3 and 4 on the proposed milestones not only were significantly out of range for this "mini" project in the time frame and instruction we had for this class, but also we were delayed by getting the DWM 1000 chips and then ordering custom PCB boards to mount the chips to.
+From the original milestones only milestone 1 was achieved, as it turns out, getting SPI to work using our STM32 discovery's is no easy feat as explained below. Hours upon hours were spent trying to get this communication protocol to work. In hindsight we bit off significantly more then we could chew. Milestone 3 and 4 on the proposed milestones not only were significantly out of range for this "mini" project in the time frame and instruction we had for this class, but also were never possible due to the delays on getting the DWM 1000 chips, determining a custom PCB was needed, and then ordering said custom PCB boards to mount the chips to.
 
 ## Major Road Blocks
 ### SPI
