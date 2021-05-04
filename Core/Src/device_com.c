@@ -1,4 +1,3 @@
-
 #include "device_com.h"
 
 SPI_HandleTypeDef hspi1;
@@ -27,7 +26,7 @@ uint8_t dw_init(SPI_HandleTypeDef* spi_instance) {
 	Send32At(len, (0x01 << 11));
 	SPISend(spi_instance, len + 2);
 	
-		// trigger a soft reset
+	// trigger a soft reset
 	len = SetupSendBuff(0, 0x36, 0x00);
 	SPISend(spi_instance, len + 1);
 	
@@ -59,7 +58,17 @@ uint8_t dw_init(SPI_HandleTypeDef* spi_instance) {
 	
 	// soft reset done
 	
-	HAL_Delay(10);
+	HAL_Delay(100);
+	
+	// SYS_CFG: 0x04:3 -> 0x20 (Recieve Auto-Reenable (on frame failure))
+	len = SetupSendBuff(1,0x04,0x3);
+	Send32At(len, 0x20);
+	SPISend(spi_instance, len+1);
+	
+	// SYS_MASK: 0x0E:1 -> 0x20 (Interrupt on Data Frame Ready)
+	len = SetupSendBuff(1,0x0E,0x0);
+	Send32At(len, 0x01 << 13);
+	SPISend(spi_instance, len+2);
 	
 	// TX_POWER: 0x1E -> 0x15355575
 	len = SetupSendBuff(1,0x1E,0);
@@ -72,7 +81,6 @@ uint8_t dw_init(SPI_HandleTypeDef* spi_instance) {
 	Send32At(len, (0x01) | (0x01 << 4) | (0x01 << 27) | (0x01 << 22) | (0x01 << 18));
 	SPISend(spi_instance, len + 4);
 	
-	//DWM "Default Configurations that should be modified"
 	// AGC_TUNE1: 0x23:04 -> 0x8870;
 	len = SetupSendBuff(1,0x23,0x04);
 	Send32At(len, 0x8870);
@@ -87,6 +95,11 @@ uint8_t dw_init(SPI_HandleTypeDef* spi_instance) {
 	len = SetupSendBuff(1,0x23,0x12);
 	Send32At(len, 0x0035);
 	SPISend(spi_instance, len+2);
+	
+	// GPIO_DIR: 0x26:08 -> (1<<20)
+	len = SetupSendBuff(1,0x26,0x08);
+	Send32At(len, (1 << 20));
+	SPISend(spi_instance, len+3);
 	
 	// DRX_TUNE0B: 0x27:02 -> 0x0001
 	len = SetupSendBuff(1, 0x27, 0x02);
@@ -206,7 +219,6 @@ uint8_t MX_SPI1_Init(void)
   */
 uint8_t MX_SPI2_Init(void)
 {
-
   /* SPI1 parameter configuration*/
   hspi2.Instance = SPI2;
   hspi2.Init.Mode = SPI_MODE_MASTER;
@@ -227,7 +239,6 @@ uint8_t MX_SPI2_Init(void)
     return 0;
   }
 	return 1;
-
 }
 
 void SPISend(SPI_HandleTypeDef* instance, uint8_t bytes)
