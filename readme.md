@@ -76,18 +76,24 @@ Four I/O pins are dedicated to SPI communication with external devices.
 • NSS: Slave select pin. This is being used to slave select on a negative trigger
 
 ### Cross Chip Communication (Revised Milestone 2)
-For the cross chip communication as explained previously, a simple "Hello, World!" message was transmitted from one chip to the other. The format of a tranmisson frame on a DWM 1000 chip is as follows:
+For the cross chip communication as explained previously, a simple "Hello, World!" message was transmitted from one chip to the other. The format of a transmission frame on a DWM 1000 chip is as follows: 
+
 ![TX Frame](./Photos/txframe.png)
+
 The reception of a frame is enabled by a host request or by an automatic re-enabling of the receiver. The receiver will search for preamble continually until preamble has been detected or acquired, then a demodulation will be attempted.
 
 ### Two-Way Ranging (Revised Milestone 3)
-Single-sided two-way ranging (SS-TWR) involves a simple measurement of the round trip delay of a single message from one node to another and a response sent back to the original node as shown in the figure below:
+Single-sided two-way ranging (SS-TWR) involves a simple measurement of the round trip delay of a single message from one node to another and a response sent back to the original node as shown in the figure below: 
+
 ![Two-Way Ranging](./Photos/twoway.png)
+
 The operation of SS-TWR is as shown in the figure above, where device A initiates the exchange and device B responds to complete the exchange and each device precisely timestamps the transmission and reception times of the message frames, and so can calculate times *T*_round and *T*_reply by simple subtraction
 
 ### 3 Station Calculations (Revised Milestone 4)
 This is where the roaming station ranges to three fixed anchors. Each anchor then calculates the distance to the tag. These three distances are then combined in an infrastructure-based solver to locate the tag. 
+
 ![3 Anchor](./Photos/3anchor.png)
+
 The roaming station sends a Poll message which is received by the three anchors in the infrastructure who reply in successive responses with packets RespA, RespB & RespC after which the tag sends the Final message received by all three anchors. This allows the tag to be located after sending only 2 messages and receiving 3 for a total of 5 messages.
 
 ### High Level Block Diagram
@@ -104,43 +110,55 @@ From the original milestones only milestone 1 was achieved, as it turns out, get
 The SPI communication protocol as mentioned above was extremely difficult. We tried all methods of getting it to work, we tried the HAL library first but had no luck getting the signals to actually send. After confirming our suspicions using an analog discovery 2, we decided to write the whole thing from scratch, which sadly also failed to work. As a last resort, we went back to HAL with a fresh slate and new pin assignments, finally after lots of trail and error we successfully got communication to the chips working! After tens of hours revised Milestone 1 was finally achieved.
 
 ### Cross Chip Communication
-Initially there were lots of issues revolving around the chips talking to each other, when trying to send a simple "Hello, World!" string the results came across all garbled 
+Initially there were lots of issues revolving around the chips talking to each other, when trying to send a simple "Hello, World!" string the results came across all garbled:
+
 ![Garbled Data](./Photos/garbled.png)
-After determining the correct string transmission length and also the fact that the message had to be loaded in to the memory buffer backwards, the correct string was finally transmitted. 
+
+After determining the correct string transmission length and also the fact that the message had to be loaded in to the memory buffer backwards, the correct string was finally transmitted: 
+
 ![Correct Data](./Photos/data.png)
+
 Getting these chips to work required reading through the whole 200 page user manual for the DWM 1000 chips a few times, before finally being able to understand and implement how these unique chips work.
 
 ## Setup 
 ## Required Materials
--STM32-DISCO Board
--2+ DWM 1000 Chips **
--Jumper Cables
--UART to USB Cable
+*STM32-DISCO Board
+*2+ DWM 1000 Chips **
+*Jumper Cables
+*UART to USB Cable
 
 **These chips have castellated edges, so you will either need a PCB for it or will need to solder wires directly to each edge (Very difficult). 
-We decided to make a series of custom PCB's for this project: ![Custom PCB's](./Photos/custompcb.png)
+We decided to make a series of custom PCB's for this project: 
+
+![Custom PCB's](./Photos/custompcb.png)
 
 
 ### Pin Connection Lists
 There are two DWM 1000 chips connected to each STM32 board, therefore SPI 1, SPI 2, and UART are used on each STM32.
 
 #### SP1
--PB3 -> SCLK
--PB4 -> MISO
--PD5 -> MOSI
--PA4 -> SSn
--PC1 -> IRQ (GPIO8)
+STM32 | DWM 1000
+----- |--------
+PB3 | SCLK
+PB4 | MISO
+PD5 | MOSI
+PA4 | SSn
+PC1 | IRQ (GPIO8)
 
 #### SP2
--PB13 -> SCLK
--PB14 -> MISO
--PB15 -> MOSI
--PB12 -> SSn
--PC2 -> IRQ (GPIO8)
+STM32 | DWM 1000
+----- |--------
+PB13 | SCLK
+PB14 | MISO
+PB15 | MOSI
+PB12 | SSn
+PC2 | IRQ (GPIO8)
 
 #### UART
--PC4 -> TX
--PC5 -> RX
+STM32 | DWM 1000
+----- |--------
+PC4 | TX
+PC5 | RX
 
 
 
