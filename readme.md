@@ -1,4 +1,4 @@
-# Two-Way Ranging on the STM32 DISCOVERY
+# Local Positioning System on the STM32 DISCOVERY
   - [Initial Proposal](#initial-proposal)
     - [Proposed Purpose](#proposed-purpose)
     - [Proposed Milestones](#proposed-milestones)
@@ -168,7 +168,7 @@ PB12 | SSn
 PC2 | IRQ (GPIO8)
 
 #### UART
-STM32 | DWM 1000
+STM32 | UART Cable
 ----- |--------
 PC4 | TX
 PC5 | RX
