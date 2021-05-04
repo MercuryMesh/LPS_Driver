@@ -122,12 +122,17 @@ Getting these chips to work required reading through the whole 200 page user man
 
 ## Setup 
 ## Required Materials
-*STM32-DISCO Board
-*2+ DWM 1000 Chips **
-*Jumper Cables
-*UART to USB Cable
+* STM32-DISCO Board
 
-**These chips have castellated edges, so you will either need a PCB for it or will need to solder wires directly to each edge (Very difficult). 
+* 2+ DWM 1000 Chips **
+
+* Jumper Cables
+
+* UART to USB Cable
+
+
+**These chips have castellated edges, so you will either need a PCB for it or will need to solder wires directly to each edge (However this is very difficult and due to the pin pitch, and static sensitivity not recommended).
+
 We decided to make a series of custom PCB's for this project: 
 
 ![Custom PCB's](./Photos/custompcb.png)
