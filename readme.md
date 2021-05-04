@@ -49,10 +49,12 @@ Demonstrate autonomous navigation by feeding the found position to the demonstra
 Demonstrate fully working project. Communication to the master station allows car status to be displayed to a computer, and the computer can issue commands.
 
 ## Revised Proposal
+* See [Milestones Achieved](#milestones-achieved) and [Major Road Blocks](#major-road-blocks) for explanations of why these revised proposals were put in place
 ### Revised Purpose
 This project calculates the location of devices in 2D space. The STM32 will drive the main event loop and use a DWM 1000 module to send and time the full travel time of an ultra wide band signals to base stations containing the same module and back. At the end of the project, 2D triangulation will be achieved by using 3 base stations and one roaming station. After triangulation has been completed, the found position is displayed on the rudimentary UART interface.
 
 ### Revised Milestones
+
 #### Milestone 1: 
 Use the SPI communication protocol to communicate with the DWM 1000 chips.
 
@@ -111,7 +113,7 @@ The roaming station sends a Poll message which is received by the three anchors 
 This project uses a total of 5 labs, GPIO, Interrupts, Timers, UART, and instead of I2C we are using SPI.
 
 ## Milestones Achieved
-From the original milestones only milestone 1 was achieved, as it turns out, getting SPI to work using our STM32 discovery's is no easy feat as explained below. Hours upon hours were spent trying to get this communication protocol to work. In hindsight we bit off significantly more then we could chew. Milestone 3 and 4 on the proposed milestones were significantly out of range for this "Mini" project in the time and instruction we had for this class.
+From the original milestones only milestone 1 was achieved, as it turns out, getting SPI to work using our STM32 discovery's is no easy feat as explained below. Hours upon hours were spent trying to get this communication protocol to work. In hindsight we bit off significantly more then we could chew. Milestone 3 and 4 on the proposed milestones not only were significantly out of range for this "mini" project in the time frame and instruction we had for this class, but also we were delayed by getting the DWM 1000 chips and then ordering custom PCB boards to mount the chips to.
 
 ## Major Road Blocks
 ### SPI
@@ -172,6 +174,3 @@ STM32 | UART Cable
 ----- |--------
 PC4 | TX
 PC5 | RX
-
-
-
