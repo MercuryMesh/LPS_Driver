@@ -1,4 +1,6 @@
 # Local Positioning System on the STM32 DISCOVERY
+- [Local Positioning System on the STM32 DISCOVERY](#local-positioning-system-on-the-stm32-discovery)
+  - [Video Demo](#video-demo)
   - [Initial Proposal](#initial-proposal)
     - [Proposed Purpose](#proposed-purpose)
     - [Proposed Milestones](#proposed-milestones)
@@ -31,6 +33,11 @@
       - [SP2](#sp2)
       - [UART](#uart)
 
+
+## Video Demo
+
+* *See Video Demo Here:(https://youtu.be/43Bpcw8ua3c)*
+
 ## Initial Proposal
 ### Proposed Purpose
 This project calculates the location of devices in 3D space. The STM32 will drive the main event loop and use a DWM 1000 module to send and time the full travel time of an ultra wide band signals to base stations containing the same module and back. At the end of the project, a base station will be repurposed to allow commands to be sent back to the RC car.
@@ -49,7 +56,7 @@ Demonstrate autonomous navigation by feeding the found position to the demonstra
 Demonstrate fully working project. Communication to the master station allows car status to be displayed to a computer, and the computer can issue commands.
 
 ## Revised Proposal
-* See [Milestones Achieved](#milestones-achieved) and [Major Road Blocks](#major-road-blocks) for explanations of why these revised proposals were put in place
+* *See [Milestones Achieved](#milestones-achieved) and [Major Road Blocks](#major-road-blocks) for explanations of why these revised proposals were put in place*
 ### Revised Purpose
 This project calculates the location of devices in 2D space. The STM32 will drive the main event loop and use a DWM 1000 module to send and time the full travel time of an ultra wide band signals to base stations containing the same module and back. At the end of the project, 2D triangulation will be achieved by using 3 base stations and one roaming station. After triangulation has been completed, the found position is displayed on the rudimentary UART interface.
 
@@ -89,7 +96,7 @@ For the cross chip communication as explained previously, a simple "Hello, World
 The reception of a frame is enabled by a host request or by an automatic re-enabling of the receiver. The receiver will search for preamble continually until preamble has been detected or acquired, then a demodulation will be attempted.
 
 ### Two-Way Ranging (Revised Milestone 3)
-- [ ] Milestone Achieved!
+- [X] Milestone Achieved!
 
 Single-sided two-way ranging (SS-TWR) involves a simple measurement of the round trip delay of a single message from one node to another and a response sent back to the original node as shown in the figure below: 
 
